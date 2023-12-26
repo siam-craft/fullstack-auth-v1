@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { User } from "../models/index.js";
-import {
-  AuthenticateValidators,
-  RegisterValidators,
-} from "../validators/index.js";
+import { RegisterValidators } from "../validators/index.js";
 import Validator from "../middlewares/validatorMiddleware.js";
 import { randomBytes } from "crypto";
+import { DOMAIN, SENDER_EMAIL } from "../constants/index.js";
+import sendMailToUser from "../functions/emailSender.js";
 
 const router = Router();
 
@@ -21,31 +20,64 @@ router.post(
   RegisterValidators,
   Validator,
   async (req, res) => {
-    const { username, email } = req.body;
-    // check if the user name is taken or not
-    let user = await User.findOne({ username });
-    if (user) {
+    try {
+      const { username, email } = req.body;
+      // check if the user name is taken or not
+      let user = await User.findOne({ username });
+      if (user) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Username is taken" });
+      }
+
+      // check if the user exists with that email
+      user = await User.findOne({ email });
+      if (user) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Email is taken" });
+      }
+
+      user = new User({
+        ...req.body,
+        verificationCode: randomBytes(20).toString("hex"),
+      });
+
+      const result = await user.save();
+
+      const mailingHtml = `<h1>Hello ${user.username},</h1>
+      <p>Please verify your email address by clicking the link below:</p>
+      <p><a href="${DOMAIN}users/verify-now/${user.verificationCode}" target="_blank">Verify Email</a></p>`;
+
+      sendMailToUser(
+        SENDER_EMAIL,
+        result.email,
+        "Varification Code",
+        mailingHtml,
+      );
+
+      return res.status(201).json({
+        success: true,
+        message:
+          "Hurrah! Your account is created. Please verify your email address",
+      });
+    } catch (error) {
       return res
-        .status(400)
-        .json({ success: false, error: "Username is taken" });
+        .status(500)
+        .json({ message: "An error occured", error: error.message });
     }
-
-    // check if the user exists with that email
-    user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ success: false, error: "Email is taken" });
-    }
-
-    user = new User({
-      ...req.body,
-      verificationCode: randomBytes(20).toString("hex"),
-    });
-    const result = await user.save();
-
-    return res.status(200).json({ success: true, data: result });
-
-    // send the email to the user
   },
 );
+
+/**
+ * @description To create a new user accoutnt
+ * @api /users/verify-now/:verificationCode
+ * @access Public <Only via email>
+ * @type GET
+ */
+
+router.get("/verify-now/:verificationCode", async (req, res) => {
+  console.log("hi");
+});
 
 export default router;
