@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { join } from "path";
 import { User } from "../models/index.js";
 import { RegisterValidators } from "../validators/index.js";
 import Validator from "../middlewares/validatorMiddleware.js";
@@ -77,7 +78,24 @@ router.post(
  */
 
 router.get("/verify-now/:verificationCode", async (req, res) => {
-  console.log("hi");
+  try {
+    let { verificationCode } = req.params;
+    let user = await User.findOne({ verificationCode });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Unauthorized" });
+    }
+
+    user.verified = true;
+    user.verificationCode = undefined;
+
+    await user.save();
+    return res.sendFile(
+      join(__dirname, "../templates/verification-success.html"),
+    );
+  } catch (error) {
+    console.log(error);
+    return res.sendFile(join(__dirname, "../templates/errors.html"));
+  }
 });
 
 export default router;
