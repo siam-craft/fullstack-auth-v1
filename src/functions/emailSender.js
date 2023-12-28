@@ -14,7 +14,7 @@ const sendMailToUser = (from, to, subject = "Varification Code", html) => {
   const details = {
     from,
     to,
-    subject: "Varification Code",
+    subject,
     html,
   };
 

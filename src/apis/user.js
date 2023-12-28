@@ -4,13 +4,13 @@ import { User } from "../models/index.js";
 import {
   RegisterValidators,
   AuthenticateValidators,
+  ResetPasswordValidators,
 } from "../validators/index.js";
 import Validator from "../middlewares/validatorMiddleware.js";
 import { randomBytes } from "crypto";
 import { DOMAIN, SENDER_EMAIL } from "../constants/index.js";
 import sendMailToUser from "../functions/emailSender.js";
 import { fileURLToPath } from "url";
-import passport from "passport";
 import { userAuth } from "../middlewares/auth-guard.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,6 +55,7 @@ router.post(
 
       const result = await user.save();
 
+      // send email to the user
       const mailingHtml = `<h1>Hello ${user.username},</h1>
       <p>Please verify your email address by clicking the link below:</p>
       <p><a href="${DOMAIN}users/verify-now/${user.verificationCode}" target="_blank">Verify Email</a></p>`;
@@ -163,6 +164,128 @@ router.get("/api/authenticate", userAuth, async (req, res) => {
   console.log("REQ", req);
 
   return res.status(200).json({ user: req.user });
+});
+
+/**
+ * @description To initiate the password reset process
+ * @api /users/api/reset-password
+ * @access Public
+ * @type POST
+ */
+
+router.put(
+  "/api/reset-password",
+  ResetPasswordValidators,
+  Validator,
+  async (req, res) => {
+    try {
+      let { email } = req.body;
+      let user = await User.findOne({ email });
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+      user.generatePasswordReset();
+      const result = await user.save();
+
+      // sent password reset link
+      const mailingHtml = `<h1>Hello ${user.username},</h1>
+       <p>Please click the link below to reset your password:</p>
+       <p>If this password reset request not created by you you can ignore this email</p>
+       <p><a href="${DOMAIN}users/reset-password-now/${user.resetPasswordToken}" target="_blank">Reset Link</a></p>`;
+
+      sendMailToUser(
+        SENDER_EMAIL,
+        result.email,
+        "Reset Password Link",
+        mailingHtml,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Password reset link is sent to your email",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "An error occured",
+        error: error.message,
+      });
+    }
+  },
+);
+
+/**
+ * @description To get the reset password form
+ * @api /users/reset-password-now/:resetPasswordToken
+ * @access Restricted via email
+ * @type GET
+ */
+
+router.get("/reset-password-now/:resetPasswordToken", async (req, res) => {
+  try {
+    let { resetPasswordToken } = req.params;
+    let user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpiresIn: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Password reset token is invalid" });
+    }
+    return res.sendFile(join(__dirname, "../templates/password-reset.html"));
+  } catch (error) {
+    return res.sendFile(join(__dirname, "../templates/errors.html"));
+  }
+});
+
+/**
+ * @description To get the reset password form
+ * @api /users/reset-password-now
+ * @access Restricted via email
+ * @type POST
+ */
+
+router.post("/api/reset-password-now", async (req, res) => {
+  try {
+    let { resetPasswordToken, password } = req.body;
+    let user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpiresIn: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Password reset token is invalid" });
+    }
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresIn = undefined;
+    const result = await user.save();
+    // send notification email
+    const mailingHtml = `<h1>Hello ${user.username},</h1>
+       <p>Your password has been changed</p>`;
+
+    sendMailToUser(
+      SENDER_EMAIL,
+      result.email,
+      "Successfully reset your password",
+      mailingHtml,
+    );
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Password reset is completed" });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occured",
+      error: error.message,
+    });
+  }
 });
 
 export default router;

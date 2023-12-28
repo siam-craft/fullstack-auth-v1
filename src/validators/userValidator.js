@@ -12,3 +12,4 @@ const password = check(
 
 export const RegisterValidators = [name, username, email, password];
 export const AuthenticateValidators = [username, password];
+export const ResetPasswordValidators = [email];
