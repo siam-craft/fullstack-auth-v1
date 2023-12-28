@@ -10,6 +10,8 @@ import { randomBytes } from "crypto";
 import { DOMAIN, SENDER_EMAIL } from "../constants/index.js";
 import sendMailToUser from "../functions/emailSender.js";
 import { fileURLToPath } from "url";
+import passport from "passport";
+import { userAuth } from "../middlewares/auth-guard.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -140,7 +142,7 @@ router.post(
         success: true,
         user: user.getUserInfo(),
         token: `Bearer ${token}`,
-        message: "You are now login",
+        message: "You are now loggged in",
       });
     } catch (error) {
       return res
@@ -149,5 +151,18 @@ router.post(
     }
   },
 );
+
+/**
+ * @description To get the authenticated user's profile
+ * @api /users/api/authenticate
+ * @access Private
+ * @type GET
+ */
+
+router.get("/api/authenticate", userAuth, async (req, res) => {
+  console.log("REQ", req);
+
+  return res.status(200).json({ user: req.user });
+});
 
 export default router;

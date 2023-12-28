@@ -2,8 +2,11 @@ import cors from "cors";
 import express, { json } from "express";
 import mongoose from "mongoose";
 import consola from "consola";
+import passport from "passport";
+
 import userApis from "./apis/user.js";
 import { DB, PORT } from "./constants/index.js";
+import "./middlewares/passportMiddleware.js";
 
 // initialize express app
 const app = express();
@@ -11,6 +14,7 @@ const app = express();
 // apply apllications middlewares
 app.use(cors());
 app.use(json());
+app.use(passport.initialize());
 
 // inject sub router and apis
 app.use("/users", userApis);
