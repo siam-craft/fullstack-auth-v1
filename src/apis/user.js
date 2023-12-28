@@ -1,11 +1,18 @@
 import { Router } from "express";
-import { join } from "path";
+import { join, dirname } from "path";
 import { User } from "../models/index.js";
-import { RegisterValidators } from "../validators/index.js";
+import {
+  RegisterValidators,
+  AuthenticateValidators,
+} from "../validators/index.js";
 import Validator from "../middlewares/validatorMiddleware.js";
 import { randomBytes } from "crypto";
 import { DOMAIN, SENDER_EMAIL } from "../constants/index.js";
 import sendMailToUser from "../functions/emailSender.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const router = Router();
 
@@ -71,7 +78,7 @@ router.post(
 );
 
 /**
- * @description To create a new user accoutnt
+ * @description To varify a new user accoutnt
  * @api /users/verify-now/:verificationCode
  * @access Public <Only via email>
  * @type GET
@@ -80,9 +87,12 @@ router.post(
 router.get("/verify-now/:verificationCode", async (req, res) => {
   try {
     let { verificationCode } = req.params;
+    console.log(verificationCode, "user");
     let user = await User.findOne({ verificationCode });
+    console.log(user, "user");
+
     if (!user) {
-      return res.status(404).json({ success: false, message: "Unauthorized" });
+      return res.status(404).json({ success: false, message: "Error Unknown" });
     }
 
     user.verified = true;
@@ -97,5 +107,47 @@ router.get("/verify-now/:verificationCode", async (req, res) => {
     return res.sendFile(join(__dirname, "../templates/errors.html"));
   }
 });
+
+/**
+ * @description To authenticate an user and get auth token
+ * @api /users/api/authenticate
+ * @access Public
+ * @type POST
+ */
+
+router.post(
+  "/api/authenticate",
+  AuthenticateValidators,
+  Validator,
+  async (req, res) => {
+    try {
+      let { username, password } = req.body;
+      let user = await User.findOne({ username });
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      if (!(await user.comparePassword(password))) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Incorrect Password" });
+      }
+
+      const token = await user.generateJWT();
+      return res.status(200).json({
+        success: true,
+        user: user.getUserInfo(),
+        token: `Bearer ${token}`,
+        message: "You are now login",
+      });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ message: "An error occured", error: error.message });
+    }
+  },
+);
 
 export default router;

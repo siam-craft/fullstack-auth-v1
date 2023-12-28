@@ -71,7 +71,7 @@ UserSchema.methods.generatePasswordReset = function () {
 };
 
 UserSchema.methods.getUserInfo = function () {
-  return lodash.pick(this, ["_id", "name", "username", "email"]);
+  return lodash.pick(this, ["_id", "name", "username", "email", "verified"]);
 };
 
 const User = model("User", UserSchema);
