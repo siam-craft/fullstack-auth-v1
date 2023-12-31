@@ -54,7 +54,7 @@ UserSchema.methods.comparePassword = async function (password) {
   return await bcryptjs.compare(password, this.password);
 };
 
-UserSchema.methods.generateJWT = async function () {
+UserSchema.methods.generateJWT = function () {
   let payload = {
     name: this.name,
     username: this.username,
@@ -62,7 +62,7 @@ UserSchema.methods.generateJWT = async function () {
     id: this._id,
   };
 
-  return await jsonwebtoken.sign(payload, SECRET, { expiresIn: "1 day" });
+  return jsonwebtoken.sign(payload, SECRET, { expiresIn: "1 day" });
 };
 
 UserSchema.methods.generatePasswordReset = function () {
