@@ -1,8 +1,14 @@
 import multer from "multer";
 
-const fileName = (req, file, next) => {
-  let lastIndexOf = file.originalname.lastIndexOf(".");
-  let ext = file.originalname.substring(lastIndexOf);
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const filename = (req, file, next) => {
+  let lastIndexof = file.originalname.lastIndexOf(".");
+  let ext = file.originalname.substring(lastIndexof);
   next(null, `img-${Date.now()}${ext}`);
 };
 
@@ -11,7 +17,6 @@ const destination = (req, file, next) => {
 };
 
 const upload = multer({
-  storage: multer.diskStorage({ destination, fileName }),
+  storage: multer.diskStorage({ destination, filename }),
 });
-
 export default upload;

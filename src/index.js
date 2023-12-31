@@ -3,10 +3,16 @@ import express, { json } from "express";
 import mongoose from "mongoose";
 import consola from "consola";
 import passport from "passport";
-
-import userApis from "./apis/user.js";
 import { DB, PORT } from "./constants/index.js";
 import "./middlewares/passportMiddleware.js";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+import profileApis from "./apis/profiles.js";
+import userApis from "./apis/user.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // initialize express app
 const app = express();
@@ -15,9 +21,11 @@ const app = express();
 app.use(cors());
 app.use(json());
 app.use(passport.initialize());
+app.use(express.static(join(__dirname, "..", "uploads")));
 
 // inject sub router and apis
 app.use("/users", userApis);
+app.use("/profiles", profileApis);
 
 const main = async () => {
   try {
