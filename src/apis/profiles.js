@@ -115,6 +115,7 @@ router.put(
 router.get("/api/profile-user/:username", async (req, res) => {
   try {
     let { username } = req.params;
+    console.log(username, "profile");
     let user = await User.findOne({ username });
     if (!user) {
       return res
