@@ -10,6 +10,7 @@ import { dirname, join } from "path";
 
 import profileApis from "./apis/profiles.js";
 import userApis from "./apis/user.js";
+import postApis from "./apis/posts.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,6 +27,7 @@ app.use(express.static(join(__dirname, "..", "uploads")));
 // inject sub router and apis
 app.use("/users", userApis);
 app.use("/profiles", profileApis);
+app.use("/posts", postApis);
 
 const main = async () => {
   try {
