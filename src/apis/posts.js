@@ -2,7 +2,6 @@ import { Router } from "express";
 import { Post, User } from "../models/index.js";
 import { DOMAIN } from "../constants/index.js";
 import { userAuth } from "../middlewares/auth-guard.js";
-// import uploader from "../middlewares/uploader.js";
 import { PostValidator } from "../validators/index.js";
 import validator from "../middlewares/validatorMiddleware.js";
 import { uploadPostImage as uploader } from "../middlewares/uploader.js";
@@ -24,7 +23,6 @@ router.post(
   async (req, res) => {
     try {
       let { file } = req;
-      console.log(file, "file");
       let filename = DOMAIN + file.path.split("uploads/")[1];
       return res.status(200).json({
         filename,
@@ -90,7 +88,6 @@ router.put(
     try {
       let { id } = req.params;
       let { body, user } = req;
-      console.log(user, "user");
       // check if the post with the id is in the database or not?
       let post = await Post.findById(id);
       if (post.author.toString() !== user._id.toString()) {
